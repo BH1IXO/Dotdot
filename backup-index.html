@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人AI助理 - 数字分身</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>数字分身</h1>
+                <p class="subtitle">你的个人AI助理</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-view="chat">
+                    <span class="icon">💬</span>
+                    <span>对话</span>
+                </button>
+                <button class="nav-item" data-view="memory">
+                    <span class="icon">🧠</span>
+                    <span>记忆库</span>
+                </button>
+                <button class="nav-item" data-view="files">
+                    <span class="icon">📁</span>
+                    <span>文件管理</span>
+                </button>
+                <button class="nav-item" data-view="knowledge">
+                    <span class="icon">📚</span>
+                    <span>知识库</span>
+                </button>
+                <button class="nav-item" data-view="settings">
+                    <span class="icon">⚙️</span>
+                    <span>设置</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">对话记录</span>
+                        <span class="stat-value">127</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">知识条目</span>
+                        <span class="stat-value">342</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">文件索引</span>
+                        <span class="stat-value">1,234</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 对话视图 -->
+            <div class="view active" id="chat-view">
+                <div class="chat-header">
+                    <h2>与你的数字分身对话</h2>
+                    <div class="chat-actions">
+                        <button class="btn-secondary" id="new-chat">新对话</button>
+                        <button class="btn-secondary" id="export-chat">导出</button>
+                    </div>
+                </div>
+
+                <div class="chat-container">
+                    <div class="messages" id="messages">
+                        <!-- 欢迎消息 -->
+                        <div class="message assistant">
+                            <div class="message-avatar">🤖</div>
+                            <div class="message-content">
+                                <div class="message-text">
+                                    你好！我是你的数字分身，我可以帮你：
+                                    <ul>
+                                        <li>📸 查找和管理你的照片和文件</li>
+                                        <li>📝 回忆你写过的文章和笔记内容</li>
+                                        <li>💡 基于你的情况提供个性化建议</li>
+                                        <li>🧠 学习并记住你分享的所有知识</li>
+                                    </ul>
+                                    你可以问我任何问题！
+                                </div>
+                                <div class="message-time">刚刚</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-area">
+                        <div class="input-container">
+                            <button class="btn-icon" id="attach-file" title="上传文件">📎</button>
+                            <textarea
+                                id="message-input"
+                                placeholder="试试问：帮我找去年过年的全家福照片..."
+                                rows="1"
+                            ></textarea>
+                            <button class="btn-send" id="send-message">发送</button>
+                        </div>
+                        <div class="input-suggestions">
+                            <button class="suggestion">帮我找去年过年的全家福照片</button>
+                            <button class="suggestion">我去年写的中美竞争文章里说了什么？</button>
+                            <button class="suggestion">今晚适合喝酒吗？</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 记忆库视图 -->
+            <div class="view" id="memory-view">
+                <div class="view-header">
+                    <h2>记忆库</h2>
+                    <input type="search" placeholder="搜索记忆..." class="search-box">
+                </div>
+                <div class="memory-grid">
+                    <div class="memory-card">
+                        <div class="memory-header">
+                            <span class="memory-type">对话记忆</span>
+                            <span class="memory-date">2024-12-01</span>
+                        </div>
+                        <div class="memory-content">
+                            讨论了关于AI发展趋势的看法，特别提到了AGI可能在2025年实现...
+                        </div>
+                    </div>
+                    <div class="memory-card">
+                        <div class="memory-header">
+                            <span class="memory-type">个人偏好</span>
+                            <span class="memory-date">2024-11-28</span>
+                        </div>
+                        <div class="memory-content">
+                            喜欢在晚上10点后工作，咖啡偏好美式，不喜欢太甜的食物...
+                        </div>
+                    </div>
+                    <div class="memory-card">
+                        <div class="memory-header">
+                            <span class="memory-type">重要事件</span>
+                            <span class="memory-date">2024-11-15</span>
+                        </div>
+                        <div class="memory-content">
+                            完成了季度项目汇报，获得了团队的认可，下个目标是...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文件管理视图 -->
+            <div class="view" id="files-view">
+                <div class="view-header">
+                    <h2>文件管理</h2>
+                    <div class="file-actions">
+                        <input type="search" placeholder="搜索文件..." class="search-box">
+                        <button class="btn-primary">上传文件</button>
+                    </div>
+                </div>
+                <div class="file-grid">
+                    <div class="file-card">
+                        <div class="file-icon">📸</div>
+                        <div class="file-info">
+                            <div class="file-name">全家福_2024春节.jpg</div>
+                            <div class="file-meta">2024-02-10 · 2.3 MB</div>
+                        </div>
+                    </div>
+                    <div class="file-card">
+                        <div class="file-icon">📄</div>
+                        <div class="file-info">
+                            <div class="file-name">中美竞争格局思考.docx</div>
+                            <div class="file-meta">2024-03-15 · 156 KB</div>
+                        </div>
+                    </div>
+                    <div class="file-card">
+                        <div class="file-icon">📊</div>
+                        <div class="file-info">
+                            <div class="file-name">年度总结报告.pdf</div>
+                            <div class="file-meta">2024-12-01 · 892 KB</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 知识库视图 -->
+            <div class="view" id="knowledge-view">
+                <div class="view-header">
+                    <h2>知识库</h2>
+                    <input type="search" placeholder="搜索知识..." class="search-box">
+                </div>
+                <div class="knowledge-categories">
+                    <div class="category-card">
+                        <h3>📱 技术知识</h3>
+                        <p class="category-count">128 条目</p>
+                        <p class="category-desc">编程、AI、软件工程相关知识</p>
+                    </div>
+                    <div class="category-card">
+                        <h3>🌍 时事观点</h3>
+                        <p class="category-count">45 条目</p>
+                        <p class="category-desc">对国际局势、社会现象的思考</p>
+                    </div>
+                    <div class="category-card">
+                        <h3>💼 工作经验</h3>
+                        <p class="category-count">89 条目</p>
+                        <p class="category-desc">项目经验、管理心得</p>
+                    </div>
+                    <div class="category-card">
+                        <h3>🎯 个人目标</h3>
+                        <p class="category-count">23 条目</p>
+                        <p class="category-desc">短期目标、长期规划</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设置视图 -->
+            <div class="view" id="settings-view">
+                <div class="view-header">
+                    <h2>设置</h2>
+                </div>
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h3>个人信息</h3>
+                        <div class="setting-item">
+                            <label>名字</label>
+                            <input type="text" value="Todd" class="setting-input">
+                        </div>
+                        <div class="setting-item">
+                            <label>数字分身名称</label>
+                            <input type="text" value="小T" class="setting-input">
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>AI设置</h3>
+                        <div class="setting-item">
+                            <label>对话模型</label>
+                            <select class="setting-input">
+                                <option>Claude 3.5 Sonnet</option>
+                                <option>GPT-4</option>
+                                <option>本地模型</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>回复风格</label>
+                            <select class="setting-input">
+                                <option>专业严谨</option>
+                                <option>轻松随意</option>
+                                <option>简洁高效</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>隐私与安全</h3>
+                        <div class="setting-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <span>本地加密存储</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked>
+                                <span>自动备份记忆</span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox">
+                                <span>云端同步</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>数据管理</h3>
+                        <button class="btn-secondary">导出所有数据</button>
+                        <button class="btn-secondary">清除缓存</button>
+                        <button class="btn-danger">删除所有数据</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

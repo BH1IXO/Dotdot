@@ -1,0 +1,8 @@
+{
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "npm install",
+  "env": {
+    "DEEPSEEK_API_KEY": "@deepseek_api_key",
+    "DATABASE_URL": "file:./data/prod.db"
+  }
+}

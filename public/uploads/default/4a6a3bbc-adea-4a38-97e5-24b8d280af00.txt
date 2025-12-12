@@ -1,0 +1,16 @@
+这是一个测试文档 - Phase 3 文件上传测试
+
+Todd 的个人助手系统功能：
+1. 文件上传和存储
+2. 自动文本提取
+3. PDF 处理和分块
+4. 图片缩略图生成
+5. MemMachine 向量索引
+
+系统集成：
+- Next.js 16
+- DeepSeek V3
+- MemMachine
+- Prisma + SQLite
+
+这个文档用于测试文件上传和处理功能。

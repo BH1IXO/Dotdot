@@ -1,0 +1,157 @@
+// Prisma Schema for Personal Assistant
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"  // Phase 1 用 SQLite, Phase 4 改为 postgresql
+  url      = env("DATABASE_URL")
+}
+
+// 对话消息表
+model Message {
+  id        String   @id @default(uuid())
+  role      String   // "user" 或 "assistant"
+  content   String
+  metadata  String   @default("{}") // JSON 格式的元数据，用于存储文件附件等信息
+  createdAt DateTime @default(now())
+
+  // Phase 4: 关联到用户和会话
+  userId      String        @default("default")
+  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String?
+  session     ChatSession?  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+// 用户画像表
+model UserProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String?  // 用户名字
+  data      String   // JSON 格式存储画像数据
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Phase 3: 文件管理表
+model File {
+  id        String   @id @default(uuid())
+
+  // 文件基本信息
+  filename  String   // 原始文件名
+  filepath  String   // 存储路径
+  mimetype  String   // MIME 类型 (image/jpeg, application/pdf, etc.)
+  size      Int      // 文件大小（字节）
+
+  // 元数据
+  thumbnailPath String?  // 缩略图路径
+  width         Int?     // 图片宽度
+  height        Int?     // 图片高度
+
+  // AI 生成的内容
+  description   String?  // AI 生成的文件描述
+  extractedText String?  // 提取的文本内容（PDF/图片OCR）
+  tags          String   @default("[]") // JSON 数组格式的标签
+
+  // 处理状态
+  status        String   @default("uploading") // uploading, processing, ready, error
+  errorMessage  String?  // 错误信息
+
+  // 时间戳
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Phase 4: 关联到用户
+  userId        String   @default("default")
+  user          User?    @relation("UserFiles", fields: [userId], references: [id], onDelete: Cascade)
+  chunks        FileChunk[]
+
+  @@index([userId])
+}
+
+// 文件分块表（用于向量索引）
+model FileChunk {
+  id         String   @id @default(uuid())
+  fileId     String
+  file       File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  chunkIndex Int      // 块索引（从 0 开始）
+  content    String   // 块内容
+
+  // MemMachine 向量 ID
+  vectorId   String?  // MemMachine 返回的向量 ID
+
+  createdAt  DateTime @default(now())
+
+  @@index([fileId])
+}
+
+// 设置表
+model Settings {
+  id        String   @id @default(uuid())
+  key       String   // 设置键名
+  value     String   // 加密存储的值
+  userId    String   @default("default")
+  user      User?    @relation("UserSettings", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key]) // 联合唯一索引:每个用户的key唯一
+  @@index([userId])
+}
+
+// 记忆表 - 存储不同类型的记忆
+model Memory {
+  id        String   @id @default(uuid())
+  userId    String   @default("default")
+  user      User?    @relation("UserMemories", fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String   // conversation, knowledge, preference, fact
+  content   String   // 记忆内容
+
+  metadata  String   @default("{}") // JSON 格式的元数据
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, type])
+}
+
+// Phase 4: 用户认证和多租户支持
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   // bcrypt 加密的密码
+  name          String?
+
+  // 关联
+  messages      Message[]
+  files         File[]    @relation("UserFiles")
+  memories      Memory[]  @relation("UserMemories")
+  sessions      ChatSession[]
+  profile       UserProfile?
+  settings      Settings[] @relation("UserSettings")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// 对话会话表
+model ChatSession {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String?   // 会话标题（可选）
+  messages  Message[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+}

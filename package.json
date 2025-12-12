@@ -1,0 +1,39 @@
+{
+  "name": "personal-assistant",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "5.22.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "bcryptjs": "^3.0.3",
+    "canvas": "^3.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "next": "^16.0.7",
+    "node-fetch": "^2.7.0",
+    "openai": "^6.10.0",
+    "pdfjs-dist": "^5.4.449",
+    "prisma": "5.22.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3"
+  }
+}
