@@ -118,8 +118,29 @@ export default function GuestLinksPage() {
 
   const copyLink = (linkCode: string) => {
     const url = `${window.location.origin}/guest/${linkCode}`
-    navigator.clipboard.writeText(url)
-    alert('链接已复制!')
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => alert('链接已复制!')).catch(() => fallbackCopy(url))
+    } else {
+      fallbackCopy(url)
+    }
+  }
+
+  const fallbackCopy = (text: string) => {
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    textArea.style.top = '-999999px'
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      alert('链接已复制!')
+    } catch (err) {
+      alert('复制失败，请手动复制: ' + text)
+    }
+    document.body.removeChild(textArea)
   }
 
   if (loading) return <div className="p-8">加载中...</div>
