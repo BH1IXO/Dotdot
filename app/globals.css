@@ -1238,11 +1238,14 @@ body {
     .view-header {
         padding: 16px 20px;
         padding-left: 72px; /* 为汉堡菜单留出空间 */
+        flex-wrap: wrap;
     }
 
     .chat-header h2,
     .view-header h2 {
         font-size: 18px;
+        flex: 1;
+        min-width: 0;
     }
 
     /* 聊天区域适配 */
@@ -1479,5 +1482,122 @@ body {
 
     .sidebar-header {
         padding: 16px;
+    }
+}
+
+/* ===================================================
+   移动端特殊组件优化
+   ================================================== */
+
+/* 访客链接视图移动端优化 */
+@media (max-width: 768px) {
+    /* 访客链接项 */
+    .link-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 16px;
+    }
+
+    .link-info {
+        width: 100%;
+    }
+
+    .link-actions {
+        width: 100%;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .link-actions button {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    /* 创建表单移动端优化 */
+    .create-form {
+        padding: 16px !important;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* 视图内容区域 */
+    .view-content {
+        padding: 16px !important;
+    }
+
+    /* 链接列表 */
+    .links-list {
+        gap: 12px !important;
+    }
+
+    /* 空状态提示 */
+    .empty-state {
+        padding: 32px 16px !important;
+    }
+}
+
+/* 表单元素移动端通用优化 */
+@media (max-width: 768px) {
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="datetime-local"],
+    input[type="number"],
+    select,
+    textarea {
+        font-size: 16px !important; /* 防止iOS自动缩放 */
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* 按钮移动端优化 */
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger {
+        padding: 12px 20px;
+        font-size: 14px;
+        white-space: normal; /* 允许文字换行 */
+        text-align: center;
+        min-height: 44px; /* iOS推荐的最小触摸目标 */
+    }
+
+    /* 确保按钮容器在移动端垂直排列 */
+    .view-header,
+    .chat-header {
+        gap: 12px;
+    }
+
+    .view-header > *:last-child,
+    .chat-header > *:last-child {
+        width: 100%;
+    }
+}
+
+/* 滚动容器优化 */
+@media (max-width: 768px) {
+    .view-content,
+    .messages,
+    .memory-grid,
+    .file-grid {
+        -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+    }
+
+    /* 防止内容溢出 */
+    * {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* 确保容器不会超出视口 */
+    .container,
+    .main-content,
+    .view {
+        max-width: 100vw;
+        overflow-x: hidden;
     }
 }
