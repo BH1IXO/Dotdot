@@ -14,9 +14,12 @@ export async function POST(req: NextRequest) {
     const { sessionId, message } = await req.json()
 
     if (!sessionId || !message) {
-      return NextResponse.json(
-        { error: '会话ID和消息内容不能为空' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: '会话ID和消息内容不能为空' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -41,9 +44,12 @@ export async function POST(req: NextRequest) {
     })
 
     if (!session) {
-      return NextResponse.json(
-        { error: '会话不存在' },
-        { status: 404 }
+      return new Response(
+        JSON.stringify({ error: '会话不存在' }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }
       )
     }
 
