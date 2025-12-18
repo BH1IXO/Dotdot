@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const searchResult = await userMemClient.searchMemories(message, {
-        topK: 5,
+        topK: 20,  // 增加到20，确保访客能检索到足够的相关记忆
         types: [], // Search both episodic and semantic
       })
 

@@ -116,21 +116,26 @@ export async function POST(req: NextRequest) {
       console.log(`🔍 Found ${allEpisodes.length} total memories (short: ${shortTermEpisodes.length}, long: ${longTermEpisodes.length}, semantic: ${semanticMemories.length})`)
 
       if (allEpisodes.length > 0) {
-        // 只有当历史对话有足够多的消息时才进行去重（避免新对话时过滤掉所有记忆）
+        // 只过滤用户在当前对话中已经说过的话，避免重复
+        // 不过滤从记忆中检索到的内容，因为那些是之前对话的重要信息
         const shouldDeduplicate = history.length >= 5
         let filteredEpisodes = allEpisodes
 
         if (shouldDeduplicate) {
-          // 获取最近的对话内容，用于去重
-          const recentContents = new Set(
-            history.slice(-10).map((msg: any) => msg.content.trim())
+          // 只获取用户消息（role='user'），不包括AI回复
+          // 这样可以避免误过滤掉从记忆中提取的重要信息
+          const recentUserMessages = new Set(
+            history
+              .filter((msg: any) => msg.role === 'user')
+              .slice(-5)  // 只看最近5条用户消息
+              .map((msg: any) => msg.content.trim())
           )
           filteredEpisodes = allEpisodes.filter(mem => {
             // Both episodic and semantic memories have 'content'
             const memContent = mem.content || ''
-            return !recentContents.has(memContent.trim())
+            return !recentUserMessages.has(memContent.trim())
           })
-          console.log(`🔄 Deduplication applied: ${allEpisodes.length} -> ${filteredEpisodes.length} (removed ${allEpisodes.length - filteredEpisodes.length} duplicates)`)
+          console.log(`🔄 Deduplication applied: ${allEpisodes.length} -> ${filteredEpisodes.length} (removed ${allEpisodes.length - filteredEpisodes.length} recent user messages)`)
         } else {
           console.log(`ℹ️ Skipping deduplication (history too short: ${history.length} messages)`)
         }
