@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getMemMachineClient } from '@/lib/memmachine-client'
-import { chat, ChatMessage } from '@/lib/deepseek'
+import { streamChat, ChatMessage } from '@/lib/deepseek'
 
 export const runtime = 'nodejs'
 
 /**
  * POST /api/guest-chat/send-message
- * 访客发送消息并获取AI回复
+ * 访客发送消息并获取AI回复（流式响应）
  */
 export async function POST(req: NextRequest) {
   try {
@@ -116,93 +116,122 @@ export async function POST(req: NextRequest) {
       },
     ]
 
-    // 调用 DeepSeek API (使用与主界面相同的模型)
-    const assistantReply = await chat(messages)
+    // 调用 DeepSeek API (流式响应)
+    const stream = await streamChat(messages)
 
-    // 保存AI回复
-    const assistantMessage = await prisma.guestMessage.create({
-      data: {
-        sessionId,
-        role: 'assistant',
-        content: assistantReply,
-      }
+    // 使用 ReadableStream 创建流式响应
+    const encoder = new TextEncoder()
+    let fullResponse = ''
+
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          // 流式传输AI回复
+          for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content || ''
+            if (content) {
+              fullResponse += content
+              // 发送数据到前端
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`))
+            }
+          }
+
+          // 保存AI回复到数据库
+          const assistantMessage = await prisma.guestMessage.create({
+            data: {
+              sessionId,
+              role: 'assistant',
+              content: fullResponse,
+            }
+          })
+
+          // 存储访客对话到用户的MemMachine记忆系统
+          try {
+            const timestamp = new Date().toLocaleString('zh-CN', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+
+            // 保存访客的用户消息到MemMachine (使用明确的格式便于检索)
+            await userMemClient.addMemories([
+              {
+                content: `[${timestamp}] 访客 ${session.guestName} 通过访客链接来聊天了，他问：${message}`,
+                role: 'user',
+                producer: session.guestName,
+                produced_for: 'assistant',
+                metadata: {
+                  source: 'guest_chat',
+                  guest_name: session.guestName,
+                  session_id: sessionId,
+                  link_code: session.link.linkCode,
+                  link_label: session.link.label || '',
+                  timestamp: new Date().toISOString(),
+                }
+              }
+            ])
+
+            // 保存AI回复到MemMachine (使用明确的格式)
+            await userMemClient.addMemories([
+              {
+                content: `[${timestamp}] 我回复访客 ${session.guestName}：${fullResponse}`,
+                role: 'assistant',
+                producer: 'assistant',
+                produced_for: session.guestName,
+                metadata: {
+                  source: 'guest_chat',
+                  guest_name: session.guestName,
+                  session_id: sessionId,
+                  link_code: session.link.linkCode,
+                  link_label: session.link.label || '',
+                  timestamp: new Date().toISOString(),
+                }
+              }
+            ])
+
+            console.log(`✅ 访客对话已存入MemMachine: 访客=${session.guestName}, 时间=${timestamp}`)
+          } catch (memError) {
+            console.error('❌ 存储访客对话到MemMachine失败:', memError)
+          }
+
+          console.log(`✅ 访客消息已处理: 会话=${sessionId}, 访客=${session.guestName}`)
+
+          // 发送包含消息ID的元数据
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            metadata: {
+              userMessageId: userMessage.id,
+              assistantMessageId: assistantMessage.id
+            }
+          })}\n\n`))
+
+          // 发送结束信号
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          controller.close()
+        } catch (error) {
+          console.error('流式响应错误:', error)
+          controller.error(error)
+        }
+      },
     })
 
-    // 存储访客对话到用户的MemMachine记忆系统
-    try {
-      const timestamp = new Date().toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-
-      // 保存访客的用户消息到MemMachine (使用明确的格式便于检索)
-      await userMemClient.addMemories([
-        {
-          content: `[${timestamp}] 访客 ${session.guestName} 通过访客链接来聊天了，他问：${message}`,
-          role: 'user',
-          producer: session.guestName, // 使用访客名字作为producer
-          produced_for: 'assistant',
-          metadata: {
-            source: 'guest_chat',
-            guest_name: session.guestName,
-            session_id: sessionId,
-            link_code: session.link.linkCode,
-            link_label: session.link.label || '',
-            timestamp: new Date().toISOString(),
-          }
-        }
-      ])
-
-      // 保存AI回复到MemMachine (使用明确的格式)
-      await userMemClient.addMemories([
-        {
-          content: `[${timestamp}] 我回复访客 ${session.guestName}：${assistantReply}`,
-          role: 'assistant',
-          producer: 'assistant',
-          produced_for: session.guestName, // produced_for 是访客名字
-          metadata: {
-            source: 'guest_chat',
-            guest_name: session.guestName,
-            session_id: sessionId,
-            link_code: session.link.linkCode,
-            link_label: session.link.label || '',
-            timestamp: new Date().toISOString(),
-          }
-        }
-      ])
-
-      console.log(`✅ 访客对话已存入MemMachine: 访客=${session.guestName}, 时间=${timestamp}`)
-    } catch (memError) {
-      console.error('❌ 存储访客对话到MemMachine失败:', memError)
-      // 不抛出错误,继续执行
-    }
-
-    console.log(`✅ 访客消息已处理: 会话=${sessionId}, 访客=${session.guestName}`)
-
-    return NextResponse.json({
-      success: true,
-      userMessage: {
-        id: userMessage.id,
-        role: userMessage.role,
-        content: userMessage.content,
-        createdAt: userMessage.createdAt,
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       },
-      assistantMessage: {
-        id: assistantMessage.id,
-        role: assistantMessage.role,
-        content: assistantMessage.content,
-        createdAt: assistantMessage.createdAt,
-      }
     })
 
   } catch (error) {
     console.error('处理访客消息失败:', error)
-    return NextResponse.json(
-      { error: '处理消息失败' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: '处理消息失败' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     )
   }
 }
