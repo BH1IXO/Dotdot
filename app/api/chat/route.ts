@@ -153,8 +153,28 @@ export async function POST(req: NextRequest) {
 
         console.log(`🔍 Prioritized guest memories: ${guestMemories.length} guest records moved to front`)
 
-        relevantMemories = prioritizedEpisodes
-          .slice(0, 20) // 取前20条（访客记录已经在前面）
+        // 过滤掉AI的否定回复（"你还没有告诉我"等），防止记忆污染
+        const cleanedMemories = prioritizedEpisodes.filter(mem => {
+          const content = mem.content || ''
+          // 检测AI的否定回复模式
+          const isNegativeResponse =
+            content.includes('还没有') ||
+            content.includes('你确实还没有') ||
+            content.includes('尚未') ||
+            content.includes('从未') ||
+            /没有.*分享过/.test(content) ||
+            /没有.*告诉/.test(content) ||
+            /没有.*记录/.test(content)
+          return !isNegativeResponse
+        })
+
+        const filteredCount = prioritizedEpisodes.length - cleanedMemories.length
+        if (filteredCount > 0) {
+          console.log(`🧹 Filtered out ${filteredCount} negative AI responses to prevent memory pollution`)
+        }
+
+        relevantMemories = cleanedMemories
+          .slice(0, 20) // 取前20条（访客记录已经在前面，否定回复已被过滤）
           .map(mem => ({
             role: ('role' in mem && mem.role) || 'user',  // Only EpisodicMemoryResult has role
             content: mem.content || '',
