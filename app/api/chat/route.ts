@@ -140,8 +140,21 @@ export async function POST(req: NextRequest) {
           console.log(`ℹ️ Skipping deduplication (history too short: ${history.length} messages)`)
         }
 
-        relevantMemories = filteredEpisodes
-          .slice(0, 20) // 增加到 20 条，因为没有相似度排序，需要更多记忆来覆盖相关内容
+        // 将包含"访客"的记忆提到前面，确保访客对话记录不会被遗漏
+        const guestMemories = filteredEpisodes.filter(mem => {
+          const content = mem.content || ''
+          return content.includes('访客') || content.includes('guest')
+        })
+        const otherMemories = filteredEpisodes.filter(mem => {
+          const content = mem.content || ''
+          return !content.includes('访客') && !content.includes('guest')
+        })
+        const prioritizedEpisodes = [...guestMemories, ...otherMemories]
+
+        console.log(`🔍 Prioritized guest memories: ${guestMemories.length} guest records moved to front`)
+
+        relevantMemories = prioritizedEpisodes
+          .slice(0, 20) // 取前20条（访客记录已经在前面）
           .map(mem => ({
             role: ('role' in mem && mem.role) || 'user',  // Only EpisodicMemoryResult has role
             content: mem.content || '',
