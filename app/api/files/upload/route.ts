@@ -5,6 +5,9 @@ import path from 'path'
 import {
   processImage,
   processPDF,
+  processWord,
+  processExcel,
+  processTextFile,
   chunkText,
   ensureDir,
   getFileUrl,
@@ -189,6 +192,133 @@ async function processFileAsync(
       }
 
       console.log(`✅ Image processed: ${fileId}`)
+    }
+
+    // 处理 Word 文档
+    if (category === 'word') {
+      const wordData = await processWord(filepath)
+      updateData.extractedText = wordData.text
+      updateData.description = `Word 文档，${wordData.text.length} 字符`
+
+      const chunks = chunkText(wordData.text)
+      console.log(`📄 Word processing complete: ${wordData.text.length} chars, ${chunks.length} chunks`)
+
+      await Promise.all(
+        chunks.map((content, index) =>
+          prisma.fileChunk.create({
+            data: {
+              fileId: dbId,
+              chunkIndex: index,
+              content,
+            },
+          })
+        )
+      )
+
+      try {
+        await userMemClient.addMemories(
+          chunks.map((content, index) => ({
+            content: `[Word文档: ${path.basename(filepath)} - 第${index + 1}块]\n${content}`,
+            role: 'user',
+            producer: userId,
+            produced_for: 'assistant',
+            metadata: {
+              fileId: dbId,
+              chunkIndex: index.toString(),
+              type: 'word_chunk',
+              filename: path.basename(filepath),
+            },
+          }))
+        )
+        console.log(`✅ Word chunks indexed to MemMachine`)
+      } catch (err: any) {
+        console.error('Failed to index Word to MemMachine:', err)
+      }
+    }
+
+    // 处理 Excel 表格
+    if (category === 'excel') {
+      const excelData = await processExcel(filepath)
+      updateData.extractedText = excelData.text
+      updateData.description = `Excel 表格，${excelData.sheets} 个工作表`
+
+      const chunks = chunkText(excelData.text)
+      console.log(`📊 Excel processing complete: ${excelData.text.length} chars, ${chunks.length} chunks`)
+
+      await Promise.all(
+        chunks.map((content, index) =>
+          prisma.fileChunk.create({
+            data: {
+              fileId: dbId,
+              chunkIndex: index,
+              content,
+            },
+          })
+        )
+      )
+
+      try {
+        await userMemClient.addMemories(
+          chunks.map((content, index) => ({
+            content: `[Excel表格: ${path.basename(filepath)} - 第${index + 1}块]\n${content}`,
+            role: 'user',
+            producer: userId,
+            produced_for: 'assistant',
+            metadata: {
+              fileId: dbId,
+              chunkIndex: index.toString(),
+              type: 'excel_chunk',
+              filename: path.basename(filepath),
+              sheets: excelData.sheets.toString(),
+            },
+          }))
+        )
+        console.log(`✅ Excel chunks indexed to MemMachine`)
+      } catch (err: any) {
+        console.error('Failed to index Excel to MemMachine:', err)
+      }
+    }
+
+    // 处理文本文件 (txt, md)
+    if (category === 'text') {
+      const textData = await processTextFile(filepath)
+      updateData.extractedText = textData.text
+      updateData.description = `文本文件，${textData.text.length} 字符`
+
+      const chunks = chunkText(textData.text)
+      console.log(`📝 Text processing complete: ${textData.text.length} chars, ${chunks.length} chunks`)
+
+      await Promise.all(
+        chunks.map((content, index) =>
+          prisma.fileChunk.create({
+            data: {
+              fileId: dbId,
+              chunkIndex: index,
+              content,
+            },
+          })
+        )
+      )
+
+      try {
+        await userMemClient.addMemories(
+          chunks.map((content, index) => ({
+            content: `[文本文件: ${path.basename(filepath)} - 第${index + 1}块]\n${content}`,
+            role: 'user',
+            producer: userId,
+            produced_for: 'assistant',
+            metadata: {
+              fileId: dbId,
+              chunkIndex: index.toString(),
+              type: 'text_chunk',
+              filename: path.basename(filepath),
+            },
+          }))
+        )
+        console.log(`✅ Text chunks indexed to MemMachine`)
+      } catch (err: any) {
+        console.error('Failed to index text to MemMachine:', err)
+      }
     }
 
     // 处理 PDF

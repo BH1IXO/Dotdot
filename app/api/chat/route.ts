@@ -101,18 +101,19 @@ export async function POST(req: NextRequest) {
     console.log('🔍 Starting MemMachine search for:', message.slice(0, 50))
     try {
       const searchResult = await userMemClient.searchMemories(message, {
-        topK: 15, // 增加到 15，因为我们可能会过滤掉重复的
+        topK: 50, // 增加到 50，因为 MemMachine 不返回相似度分数，需要更多结果来覆盖相关记忆
         types: [], // Search BOTH episodic and semantic memories
       })
       console.log('🔍 MemMachine searchResult:', JSON.stringify(searchResult).slice(0, 300))
 
-      // Check both episodic and semantic memories
-      const longTermEpisodes = searchResult.content?.episodic_memory?.long_term_memory?.episodes || []
-      const shortTermEpisodes = searchResult.content?.episodic_memory?.short_term_memory?.episodes || []
+      // Extract episodes from both short-term and long-term memory
+      const episodicMemory = searchResult.content?.episodic_memory
+      const shortTermEpisodes = episodicMemory?.short_term_memory?.episodes || []
+      const longTermEpisodes = episodicMemory?.long_term_memory?.episodes || []
       const semanticMemories = searchResult.content?.semantic_memory || []
-      const allEpisodes = [...longTermEpisodes, ...shortTermEpisodes, ...semanticMemories]
+      const allEpisodes = [...shortTermEpisodes, ...longTermEpisodes, ...semanticMemories]
 
-      console.log(`🔍 Found ${allEpisodes.length} total memories (${longTermEpisodes.length} long-term, ${shortTermEpisodes.length} short-term, ${semanticMemories.length} semantic)`)
+      console.log(`🔍 Found ${allEpisodes.length} total memories (short: ${shortTermEpisodes.length}, long: ${longTermEpisodes.length}, semantic: ${semanticMemories.length})`)
 
       if (allEpisodes.length > 0) {
         // 只有当历史对话有足够多的消息时才进行去重（避免新对话时过滤掉所有记忆）
@@ -125,8 +126,8 @@ export async function POST(req: NextRequest) {
             history.slice(-10).map((msg: any) => msg.content.trim())
           )
           filteredEpisodes = allEpisodes.filter(mem => {
-            // Semantic memories have 'value', episodic have 'content'
-            const memContent = mem.value || mem.content || ''
+            // Both episodic and semantic memories have 'content'
+            const memContent = mem.content || ''
             return !recentContents.has(memContent.trim())
           })
           console.log(`🔄 Deduplication applied: ${allEpisodes.length} -> ${filteredEpisodes.length} (removed ${allEpisodes.length - filteredEpisodes.length} duplicates)`)
@@ -135,13 +136,13 @@ export async function POST(req: NextRequest) {
         }
 
         relevantMemories = filteredEpisodes
-          .slice(0, 10) // 最多保留 10 条记忆
+          .slice(0, 20) // 增加到 20 条，因为没有相似度排序，需要更多记忆来覆盖相关内容
           .map(mem => ({
-            role: mem.producer_role || mem.role || 'user',
-            content: mem.value || mem.content || '',  // Semantic memories use 'value'
-            timestamp: mem.timestamp || mem.created_at,
+            role: ('role' in mem && mem.role) || 'user',  // Only EpisodicMemoryResult has role
+            content: mem.content || '',
+            timestamp: ('timestamp' in mem && mem.timestamp) || '',  // Only EpisodicMemoryResult has timestamp
             similarity: mem.similarity_score,
-            type: mem.category || 'episodic',  // Track memory type
+            type: ('category' in mem && mem.category) || 'episodic',  // Only SemanticMemoryResult has category
           }))
 
         memorySource = 'memmachine'
@@ -262,7 +263,7 @@ export async function POST(req: NextRequest) {
     // Handle file context if files are provided
     let fileContext = ''
     if (files.length > 0) {
-      console.log('📎 [Chat API] Received files:', files.map(f => ({ id: f.id, filename: f.filename })))
+      console.log('📎 [Chat API] Received files:', files.map((f: any) => ({ id: f.id, filename: f.filename })))
       fileContext = '\n\n📎 用户上传的文件：\n'
       for (const file of files) {
         try {
@@ -330,10 +331,12 @@ ${webSearchEnabled ? '- 如果网络搜索提供了相关信息，请引用这�
     if (relevantMemories.length > 0) {
       const memSourceLabel = memorySource === 'memmachine' ? '🧠 MemMachine 语义搜索' : '📁 数据库搜索'
       systemPrompt += `\n\n📝 相关历史记忆 (${memSourceLabel} - 共 ${relevantMemories.length} 条)：\n`
+      systemPrompt += `⚠️ 重要提示：由于技术限制，这些记忆的顺序可能不是按相关性排序的。请仔细阅读所有记忆，找出与用户问题最相关的信息。\n\n`
       relevantMemories.forEach((mem, idx) => {
         const role = mem.role === 'user' ? '用户说' : '你回复'
         const similarity = mem.similarity ? ` [相似度: ${(mem.similarity * 100).toFixed(1)}%]` : ''
-        systemPrompt += `${idx + 1}. ${role}: ${mem.content.slice(0, 100)}${mem.content.length > 100 ? '...' : ''}${similarity}\n`
+        // 增加显示长度到 200 字符，以便包含更多上下文
+        systemPrompt += `${idx + 1}. ${role}: ${mem.content.slice(0, 200)}${mem.content.length > 200 ? '...' : ''}${similarity}\n`
       })
     }
 

@@ -49,8 +49,8 @@ export async function GET(req: NextRequest) {
     })
 
     // 根据类型筛选决定查询哪些数据源
-    let messages = []
-    let legacyMemories = []
+    let messages: any[] = []
+    let legacyMemories: any[] = []
 
     // 如果筛选类型是 'all' 或 'conversation'，查询 Message 表
     if (type === 'all' || type === 'conversation') {

@@ -136,6 +136,7 @@ model User {
   sessions      ChatSession[]
   profile       UserProfile?
   settings      Settings[] @relation("UserSettings")
+  guestLinks    GuestLink[] @relation("UserGuestLinks")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -154,4 +155,58 @@ model ChatSession {
   updatedAt DateTime  @updatedAt
 
   @@index([userId])
+}
+
+// 访客链接表 - 用于生成分享链接
+model GuestLink {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation("UserGuestLinks", fields: [userId], references: [id], onDelete: Cascade)
+
+  linkCode    String   @unique // 短链接代码(如: abc123)
+  password    String   // 访问密码(bcrypt加密)
+  label       String?  // 链接备注(如: "给张三的链接")
+
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime?
+
+  sessions    GuestSession[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([linkCode])
+}
+
+// 访客对话会话表
+model GuestSession {
+  id          String   @id @default(uuid())
+  linkId      String
+  link        GuestLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  guestName   String   // 访客名字
+  ipAddress   String?  // 访客IP
+  userAgent   String?  // 访客浏览器信息
+
+  messages    GuestMessage[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([linkId])
+}
+
+// 访客消息表
+model GuestMessage {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     GuestSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  role        String   // "user" 或 "assistant"
+  content     String
+
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId])
 }

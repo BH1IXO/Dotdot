@@ -9,6 +9,8 @@ import FileUpload from './components/FileUpload'
 import FileListView from './components/FileListView'
 import KnowledgeBaseView from './components/KnowledgeBaseView'
 import FilesViewComponent from './components/FilesView'
+import GuestLinksView from './components/GuestLinksView'
+import GuestChatsView from './components/GuestChatsView'
 import { useAuth } from './contexts/AuthContext'
 
 export default function Home() {
@@ -72,7 +74,7 @@ export default function Home() {
         <Sidebar
           activeView={activeView}
           onViewChange={handleViewChange}
-          user={user}
+          user={user ? { name: user.name ?? undefined, email: user.email } : user}
           onLogout={logout}
         />
       </div>
@@ -90,6 +92,12 @@ export default function Home() {
         </div>
         <div style={{ display: activeView === 'knowledge' ? 'contents' : 'none' }}>
           <KnowledgeView />
+        </div>
+        <div style={{ display: activeView === 'guest-links' ? 'contents' : 'none' }}>
+          <GuestLinksView />
+        </div>
+        <div style={{ display: activeView === 'guest-chats' ? 'contents' : 'none' }}>
+          <GuestChatsView />
         </div>
         <div style={{ display: activeView === 'settings' ? 'contents' : 'none' }}>
           <SettingsView />

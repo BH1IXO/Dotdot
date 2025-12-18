@@ -1,11 +1,13 @@
 /**
  * 文件处理工具
- * 处理图片缩略图生成、PDF文本提取等
+ * 处理图片缩略图生成、PDF文本提取、Word文档、Excel表格等
  */
 
 import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs/promises'
+import mammoth from 'mammoth'
+import * as xlsx from 'xlsx'
 
 export interface ProcessedImage {
   width: number
@@ -64,6 +66,40 @@ export async function processPDF(filePath: string): Promise<ProcessedPDF> {
 }
 
 /**
+ * 处理 Word 文档 (.doc, .docx)：提取文本内容
+ */
+export async function processWord(filePath: string): Promise<{ text: string }> {
+  const buffer = await fs.readFile(filePath)
+  const result = await mammoth.extractRawText({ buffer })
+  return { text: result.value }
+}
+
+/**
+ * 处理 Excel 文件 (.xls, .xlsx)：提取文本内容
+ */
+export async function processExcel(filePath: string): Promise<{ text: string; sheets: number }> {
+  const workbook = xlsx.readFile(filePath)
+  let allText = ''
+  const sheets = workbook.SheetNames.length
+
+  workbook.SheetNames.forEach((sheetName) => {
+    const sheet = workbook.Sheets[sheetName]
+    const sheetText = xlsx.utils.sheet_to_csv(sheet)
+    allText += `\n=== Sheet: ${sheetName} ===\n${sheetText}\n`
+  })
+
+  return { text: allText, sheets }
+}
+
+/**
+ * 处理纯文本文件 (.txt, .md)
+ */
+export async function processTextFile(filePath: string): Promise<{ text: string }> {
+  const text = await fs.readFile(filePath, 'utf-8')
+  return { text }
+}
+
+/**
  * 将长文本分块
  * @param text 原始文本
  * @param chunkSize 每块字符数
@@ -118,6 +154,13 @@ export function getFileCategory(mimetype: string): string {
   if (mimetype.startsWith('image/')) return 'image'
   if (mimetype === 'application/pdf') return 'pdf'
   if (mimetype.startsWith('text/')) return 'text'
+  if (mimetype === 'text/markdown') return 'text'
+  if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'word'
+  if (mimetype === 'application/msword') return 'word'
+  if (mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'excel'
+  if (mimetype === 'application/vnd.ms-excel') return 'excel'
+  if (mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') return 'powerpoint'
+  if (mimetype === 'application/vnd.ms-powerpoint') return 'powerpoint'
   if (mimetype.startsWith('video/')) return 'video'
   if (mimetype.startsWith('audio/')) return 'audio'
   return 'other'
@@ -133,10 +176,20 @@ export function isAllowedFileType(mimetype: string): boolean {
     'image/png',
     'image/gif',
     'image/webp',
-    // 文档
+    // PDF
     'application/pdf',
-    'text/plain',
-    'text/markdown',
+    // Word 文档
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/msword', // .doc
+    // Excel 表格
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/vnd.ms-excel', // .xls
+    // PowerPoint 演示文稿
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+    'application/vnd.ms-powerpoint', // .ppt
+    // 文本文件
+    'text/plain', // .txt
+    'text/markdown', // .md
   ]
   return allowedTypes.includes(mimetype)
 }

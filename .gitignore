@@ -35,3 +35,53 @@ Thumbs.db
 
 # User uploads
 public/uploads/
+
+# Temporary deployment scripts
+check-*.js
+deploy-*.js
+deploy-*.sh
+test-*.js
+upload-*.js
+fix-*.js
+diagnose-*.js
+download-*.js
+install-*.js
+restart-*.js
+start-*.js
+verify-*.js
+query-*.js
+find-*.js
+search-*.js
+monitor-*.js
+pull-*.js
+kill-*.js
+stop-*.js
+wait-*.js
+wget-*.js
+remote-*.js
+simple-*.js
+safe-*.js
+auto-*.js
+quick-*.js
+continue-*.js
+complete-*.js
+final-*.js
+redeploy-*.js
+async-*.js
+create-*.js
+debug-*.js
+clean-*.js
+read-*.js
+get-*.js
+use-*.js
+*.bat
+手动部署指南.md
+lightweight-server-guide.md
+一键部署.bat
+
+# Deployment artifacts
+deploy-package/
+deploy-package.tar.gz
+deploy/
+download_nltk_temp.py
+download-nltk-data.py

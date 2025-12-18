@@ -56,7 +56,15 @@ export interface SemanticMemoryResult {
 export interface SearchResult {
   status: number
   content: {
-    episodic_memory: EpisodicMemoryResult[]
+    episodic_memory: {
+      long_term_memory: {
+        episodes: EpisodicMemoryResult[]
+      }
+      short_term_memory: {
+        episodes: EpisodicMemoryResult[]
+        episode_summary: string[]
+      }
+    }
     semantic_memory: SemanticMemoryResult[]
   }
 }

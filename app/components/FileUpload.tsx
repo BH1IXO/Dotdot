@@ -198,7 +198,7 @@ export default function FileUpload() {
           ref={fileInputRef}
           type="file"
           onChange={handleFileSelect}
-          accept="image/*,application/pdf"
+          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md"
           style={{ display: 'none' }}
         />
 
@@ -244,7 +244,7 @@ export default function FileUpload() {
                 fontSize: '12px',
                 color: '#6b7280'
               }}>
-                支持：图片 (JPG, PNG, GIF) · PDF 文档 · 最大 10MB
+                支持：图片 (JPG, PNG, GIF) · PDF · Word (DOC, DOCX) · Excel (XLS, XLSX) · PPT (PPT, PPTX) · 文本 (TXT, MD) · 最大 10MB
               </div>
             </div>
             <button

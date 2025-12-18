@@ -22,7 +22,12 @@ export async function POST(req: NextRequest) {
     }
 
     const setting = await prisma.settings.findUnique({
-      where: { key }
+      where: {
+        userId_key: {
+          userId: 'default',
+          key: key
+        }
+      }
     })
 
     if (!setting) {

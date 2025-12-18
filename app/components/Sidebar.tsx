@@ -26,6 +26,8 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
     { id: 'memory', icon: '🧠', label: '记忆库' },
     { id: 'files', icon: '📁', label: '文件管理' },
     { id: 'knowledge', icon: '📚', label: '知识库' },
+    { id: 'guest-links', icon: '🔗', label: '访客链接' },
+    { id: 'guest-chats', icon: '👥', label: '访客对话' },
     { id: 'settings', icon: '⚙️', label: '设置' },
   ]
 
