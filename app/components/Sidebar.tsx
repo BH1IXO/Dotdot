@@ -125,7 +125,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
               justifyContent: 'center',
               whiteSpace: 'nowrap'
             }}>
-              🪙 {loading ? '-' : userTokens.toLocaleString()}
+              💰 {loading ? '-' : userTokens.toLocaleString()}
             </div>
             <button
               onClick={() => setShowRechargeModal(true)}
@@ -224,19 +224,22 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
             </h3>
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <div style={{
-                width: '200px',
-                height: '200px',
+                width: '240px',
+                height: '240px',
                 margin: '0 auto',
-                background: '#f3f4f6',
                 borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '14px',
-                color: '#6b7280',
-                border: '2px dashed #d1d5db'
+                overflow: 'hidden',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}>
-                微信/支付宝收款码
+                <img
+                  src="/qrcode.png"
+                  alt="微信支付二维码"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
               </div>
               <div style={{
                 marginTop: '16px',

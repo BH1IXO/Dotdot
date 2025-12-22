@@ -130,7 +130,7 @@ model User {
   name          String?
 
   // Token系统
-  tokens        Int      @default(100000)  // Token余额，注册时赠送100000
+  tokens        BigInt   @default(100000)  // Token余额，注册时赠送100000
 
   // 关联
   messages      Message[]

@@ -4,6 +4,17 @@
     box-sizing: border-box;
 }
 
+html, body {
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+#__next {
+    height: 100%;
+}
+
 :root {
     --primary-color: #6366f1;
     --primary-hover: #4f46e5;
@@ -26,12 +37,17 @@ body {
     background: var(--bg-secondary);
     color: var(--text-primary);
     line-height: 1.6;
+    position: relative;
+    top: 0;
+    left: 0;
 }
 
 .container {
     display: flex;
-    height: 100vh;
+    height: 100%;
+    width: 100%;
     overflow: hidden;
+    position: relative;
 }
 
 /* 侧边栏 */
@@ -42,6 +58,8 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: var(--shadow-sm);
+    padding-top: 0;
+    overflow-y: auto;
 }
 
 .user-info-section {
