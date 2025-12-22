@@ -50,9 +50,15 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    // 将BigInt转换为字符串以支持JSON序列化
+    const userWithSerializedTokens = {
+      ...user,
+      tokens: user.tokens.toString()
+    }
+
     return NextResponse.json({
       success: true,
-      user,
+      user: userWithSerializedTokens,
     })
   } catch (error: any) {
     console.error('Get user info error:', error)

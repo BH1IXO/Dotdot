@@ -56,14 +56,18 @@ export async function POST(req: NextRequest) {
       email: user.email,
     })
 
-    // 返回用户信息（不包含密码）
+    // 返回用户信息（不包含密码，转换BigInt）
     const { passwordHash, ...userWithoutPassword } = user
+    const userResponse = {
+      ...userWithoutPassword,
+      tokens: userWithoutPassword.tokens.toString()
+    }
 
     console.log('✅ User logged in:', user.email)
 
     return NextResponse.json({
       success: true,
-      user: userWithoutPassword,
+      user: userResponse,
       token,
     })
   } catch (error: any) {

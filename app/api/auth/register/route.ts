@@ -75,11 +75,17 @@ export async function POST(req: NextRequest) {
       email: user.email,
     })
 
+    // 转换BigInt为字符串以支持JSON序列化
+    const userResponse = {
+      ...user,
+      tokens: user.tokens.toString()
+    }
+
     console.log('✅ User registered:', user.email)
 
     return NextResponse.json({
       success: true,
-      user,
+      user: userResponse,
       token,
     })
   } catch (error: any) {

@@ -6,7 +6,7 @@ interface User {
   id: string
   email: string
   name: string | null
-  tokens: bigint
+  tokens: string  // BigInt从API返回时已转换为字符串
   createdAt: string
 }
 
