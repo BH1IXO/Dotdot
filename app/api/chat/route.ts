@@ -496,7 +496,7 @@ ${webSearchEnabled ? '- 如果网络搜索提供了相关信息，请引用这�
           })
 
           // 计算并扣减Token（只对非default用户）
-          let remainingTokens = 0
+          let remainingTokens: number | bigint = 0
           if (userId !== 'default') {
             try {
               const inputTokens = estimateTokens(systemPrompt + message)
@@ -510,7 +510,7 @@ ${webSearchEnabled ? '- 如果网络搜索提供了相关信息，请引用这�
                 select: { tokens: true }
               })
 
-              if (user && user.tokens >= totalTokens) {
+              if (user && Number(user.tokens) >= totalTokens) {
                 const updatedUser = await prisma.user.update({
                   where: { id: userId },
                   data: { tokens: { decrement: totalTokens } },
