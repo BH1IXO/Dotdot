@@ -21,6 +21,9 @@ export default function GuestChatPage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [guestName, setGuestName] = useState('')
+  const [dailyLimit, setDailyLimit] = useState(10)
+  const [remainingQuota, setRemainingQuota] = useState(10)
+  const [showRechargeModal, setShowRechargeModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -46,6 +49,11 @@ export default function GuestChatPage() {
       if (data.success) {
         setMessages(data.messages)
         setGuestName(data.session.guestName)
+        // 更新配额信息
+        if (data.session.link) {
+          setDailyLimit(data.session.link.dailyLimit || 10)
+          setRemainingQuota(data.session.link.remainingQuota || 10)
+        }
       }
     } catch (error) {
       console.error('获取历史失败:', error)
@@ -89,6 +97,16 @@ export default function GuestChatPage() {
       })
 
       if (!res.ok) {
+        if (res.status === 429) {
+          const errorData = await res.json()
+          setDailyLimit(errorData.dailyLimit || 10)
+          setRemainingQuota(errorData.remainingQuota || 0)
+          alert('今日问答次数已用尽，请充值后继续')
+          // 移除临时AI消息
+          setMessages(prev => prev.filter(m => m.id !== aiMsg.id))
+          setLoading(false)
+          return
+        }
         throw new Error('请求失败')
       }
 
@@ -101,6 +119,7 @@ export default function GuestChatPage() {
       }
 
       let buffer = ''
+      let messageCompleted = false
 
       while (true) {
         const { done, value } = await reader.read()
@@ -114,6 +133,7 @@ export default function GuestChatPage() {
           if (line.startsWith('data: ')) {
             const data = line.slice(6).trim()
             if (data === '[DONE]') {
+              messageCompleted = true
               break
             }
             if (data) {
@@ -141,6 +161,11 @@ export default function GuestChatPage() {
             }
           }
         }
+      }
+
+      // 消息发送成功后，减少剩余配额
+      if (messageCompleted) {
+        setRemainingQuota(prev => Math.max(0, prev - 1))
       }
     } catch (error) {
       console.error('发送失败:', error)
@@ -183,17 +208,52 @@ export default function GuestChatPage() {
         padding: '20px 24px',
         borderBottom: '1px solid var(--border-color)'
       }}>
-        <h1 style={{
-          margin: 0,
-          fontSize: '20px',
-          fontWeight: '700',
-          background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <h1 style={{
+            margin: 0,
+            fontSize: '20px',
+            fontWeight: '700',
+            background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            访客对话 - {guestName}
+          </h1>
+        </div>
+        {/* 问答次数和充值按钮 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '8px 12px',
+          background: remainingQuota > 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          borderRadius: '6px',
+          color: 'white',
+          fontSize: '13px'
         }}>
-          访客对话 - {guestName}
-        </h1>
+          <span style={{ fontWeight: '500' }}>
+            今日剩余: {remainingQuota} / {dailyLimit} 次
+          </span>
+          <button
+            onClick={() => setShowRechargeModal(true)}
+            style={{
+              padding: '4px 12px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '4px',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+          >
+            充值
+          </button>
+        </div>
       </div>
 
       {/* Messages Area */}
@@ -321,10 +381,10 @@ export default function GuestChatPage() {
           />
           <button
             type="submit"
-            disabled={loading || !input.trim()}
+            disabled={loading || !input.trim() || remainingQuota <= 0}
             style={{
               padding: '12px 24px',
-              background: loading || !input.trim()
+              background: loading || !input.trim() || remainingQuota <= 0
                 ? 'var(--text-secondary)'
                 : 'var(--success-color)',
               color: 'white',
@@ -332,26 +392,109 @@ export default function GuestChatPage() {
               borderRadius: '8px',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+              cursor: loading || !input.trim() || remainingQuota <= 0 ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
-              opacity: loading || !input.trim() ? '0.6' : '1',
+              opacity: loading || !input.trim() || remainingQuota <= 0 ? '0.6' : '1',
               minWidth: '100px'
             }}
             onMouseEnter={(e) => {
-              if (!loading && input.trim()) {
+              if (!loading && input.trim() && remainingQuota > 0) {
                 e.currentTarget.style.opacity = '0.9'
               }
             }}
             onMouseLeave={(e) => {
-              if (!loading && input.trim()) {
+              if (!loading && input.trim() && remainingQuota > 0) {
                 e.currentTarget.style.opacity = '1'
               }
             }}
           >
-            {loading ? '发送中...' : '发送'}
+            {remainingQuota <= 0 ? '次数已用尽' : loading ? '发送中...' : '发送'}
           </button>
         </div>
       </form>
+
+      {/* 充值弹窗 */}
+      {showRechargeModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={() => setShowRechargeModal(false)}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: '28px',
+              borderRadius: '12px',
+              maxWidth: '400px',
+              width: '90%',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 20px', fontSize: '18px', color: '#1f2937' }}>
+              访客充值
+            </h3>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '200px',
+                height: '200px',
+                margin: '0 auto',
+                background: '#f3f4f6',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                color: '#6b7280',
+                border: '2px dashed #d1d5db'
+              }}>
+                微信/支付宝收款码
+              </div>
+              <div style={{
+                marginTop: '16px',
+                padding: '12px',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                borderRadius: '8px',
+                fontSize: '14px',
+                color: '#166534'
+              }}>
+                <div style={{ fontWeight: '600', marginBottom: '4px' }}>充值说明</div>
+                <div>10元 = 100次问答</div>
+                <div style={{ fontSize: '12px', marginTop: '4px', color: '#15803d' }}>
+                  付款后请联系管理员确认到账
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowRechargeModal(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

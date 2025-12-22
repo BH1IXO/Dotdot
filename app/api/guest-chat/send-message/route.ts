@@ -29,9 +29,13 @@ export async function POST(req: NextRequest) {
       include: {
         link: {
           select: {
+            id: true,
             linkCode: true,
             label: true,
             userId: true,
+            dailyLimit: true,
+            remainingQuota: true,
+            lastResetDate: true,
             user: {
               select: {
                 id: true,
@@ -52,6 +56,46 @@ export async function POST(req: NextRequest) {
         }
       )
     }
+
+    // 检查每日限额
+    const now = new Date()
+    const lastReset = new Date(session.link.lastResetDate)
+    const isNewDay = now.toDateString() !== lastReset.toDateString()
+
+    // 如果是新的一天，重置配额
+    if (isNewDay) {
+      await prisma.guestLink.update({
+        where: { id: session.link.id },
+        data: {
+          remainingQuota: session.link.dailyLimit,
+          lastResetDate: now
+        }
+      })
+      session.link.remainingQuota = session.link.dailyLimit
+    }
+
+    // 检查剩余配额
+    if (session.link.remainingQuota <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: '今日问答次数已用尽',
+          dailyLimit: session.link.dailyLimit,
+          remainingQuota: 0
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // 减少配额
+    await prisma.guestLink.update({
+      where: { id: session.link.id },
+      data: {
+        remainingQuota: { decrement: 1 }
+      }
+    })
 
     // 保存用户消息
     const userMessage = await prisma.guestMessage.create({
@@ -96,23 +140,28 @@ export async function POST(req: NextRequest) {
     // 构建对话上下文 - 数字分身以用户本人的口吻对话
     const userName = session.link.user.name || '用户'
     const guestName = session.guestName
-    const systemPrompt = `你是 ${userName} 本人,现在正在与访客 ${guestName} 对话。
+    const systemPrompt = `你是 ${userName} 本人或 ${userName} 的数字分身，现在正在与访客 ${guestName} 对话。
 
 **核心身份设定:**
-- 你的名字是 ${userName}
-- 你不是助手、不是AI、不是${guestName}的数字分身
-- 你是 ${userName} 本人,访客 ${guestName} 正在与你（${userName}）交流
+- 你代表 ${userName}（也可能有昵称如：刘涛/大桃子/Todd等，可以从记忆中查找）
+- 你不是访客 ${guestName} 的数字分身，你是 ${userName} 的数字分身或本人
+- 访客 ${guestName} 正在与你（${userName}）交流
 - 你拥有 ${userName} 的所有记忆、知识、经历和性格
 
 **对话原则:**
-1. 当访客问"你是谁?"时,回答"我是${userName}"或"我叫${userName}"
-2. 介绍自己时,说"我是${userName}",不要说"我是你的数字分身"或"我是${guestName}的数字分身"
-3. 谈论自己的经历和想法时,使用第一人称"我",例如"我喜欢..."、"我认为..."
-4. 不要称呼自己为"助手"、"AI"或"代理人"
-5. 以 ${userName} 本人的口吻、性格和语气回答所有问题
+1. 当访客问"你是谁?"时，可以回答：
+   - "我是${userName}"
+   - "我是${userName}的数字分身"
+   - 或从记忆中找到的昵称/外号（如"我是大桃子"、"我是Todd"）
+   - 根据语境自然选择合适的称呼
+2. 回答要简短、直接、有重点，避免长篇大论
+3. 涉及隐私问题（如具体地址、身份证号、银行卡号等）要巧妙回避，可以说"这个不太方便透露"或转移话题
+4. 绝对不要透露其他访客的信息（谁来聊过天、聊了什么），保护所有访客隐私
+5. 使用第一人称"我"，以 ${userName} 的口吻、性格和语气回答
+6. 可以适当使用emoji让对话更生动自然 😊
 
 **记忆访问:**
-你可以访问 ${userName} 的所有记忆和知识来回答问题。保持友好、自然、专业。${memoryContext}`
+你可以访问 ${userName} 的所有记忆和知识来回答问题。保持友好、自然、真实。${memoryContext}`
 
     const messages: ChatMessage[] = [
       {

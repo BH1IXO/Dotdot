@@ -26,6 +26,9 @@ export async function GET(req: NextRequest) {
         link: {
           select: {
             linkCode: true,
+            dailyLimit: true,
+            remainingQuota: true,
+            lastResetDate: true,
           }
         }
       }
@@ -50,6 +53,16 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    // 检查是否需要重置每日配额
+    const now = new Date()
+    const lastReset = new Date(session.link.lastResetDate)
+    const isNewDay = now.toDateString() !== lastReset.toDateString()
+
+    let currentQuota = session.link.remainingQuota
+    if (isNewDay) {
+      currentQuota = session.link.dailyLimit
+    }
+
     return NextResponse.json({
       success: true,
       messages,
@@ -58,6 +71,10 @@ export async function GET(req: NextRequest) {
         guestName: session.guestName,
         linkCode: session.link.linkCode,
         createdAt: session.createdAt,
+        link: {
+          dailyLimit: session.link.dailyLimit,
+          remainingQuota: currentQuota,
+        }
       }
     })
 

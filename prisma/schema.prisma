@@ -129,6 +129,9 @@ model User {
   passwordHash  String   // bcrypt 加密的密码
   name          String?
 
+  // Token系统
+  tokens        Int      @default(10000)  // Token余额，注册时赠送10000
+
   // 关联
   messages      Message[]
   files         File[]    @relation("UserFiles")
@@ -137,6 +140,7 @@ model User {
   profile       UserProfile?
   settings      Settings[] @relation("UserSettings")
   guestLinks    GuestLink[] @relation("UserGuestLinks")
+  recharges     Recharge[]  @relation("UserRecharges")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -170,7 +174,13 @@ model GuestLink {
   isActive    Boolean  @default(true)
   expiresAt   DateTime?
 
-  sessions    GuestSession[]
+  // 访客问答限制
+  dailyLimit      Int      @default(10)     // 每天可以问的次数
+  remainingQuota  Int      @default(10)     // 剩余可问次数
+  lastResetDate   DateTime @default(now())  // 上次重置日期
+
+  sessions        GuestSession[]
+  recharges       GuestRecharge[]  @relation("GuestLinkRecharges")
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -209,4 +219,42 @@ model GuestMessage {
   createdAt   DateTime @default(now())
 
   @@index([sessionId])
+}
+
+// 用户充值记录表
+model Recharge {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation("UserRecharges", fields: [userId], references: [id], onDelete: Cascade)
+
+  amount      Float    // 充值金额（元）
+  tokens      Int      // 获得的Token数量
+  status      String   @default("pending")  // pending, completed, failed
+  paymentMethod String?  // 支付方式（支付宝、微信等）
+  transactionId String?  // 交易ID
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+// 访客充值记录表
+model GuestRecharge {
+  id          String   @id @default(uuid())
+  linkId      String
+  link        GuestLink @relation("GuestLinkRecharges", fields: [linkId], references: [id], onDelete: Cascade)
+
+  amount      Float    // 充值金额（元）
+  quota       Int      // 获得的问答次数
+  status      String   @default("pending")  // pending, completed, failed
+  paymentMethod String?  // 支付方式（支付宝、微信等）
+  transactionId String?  // 交易ID
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([linkId])
+  @@index([status])
 }

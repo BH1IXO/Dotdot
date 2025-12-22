@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
         id: true,
         email: true,
         name: true,
+        tokens: true,
         createdAt: true,
         updatedAt: true,
       }
