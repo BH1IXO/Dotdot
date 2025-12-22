@@ -35,6 +35,13 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
 
   useEffect(() => {
     loadStats()
+
+    // 每30秒刷新一次统计信息和Token余额
+    const interval = setInterval(() => {
+      loadStats()
+    }, 30000)
+
+    return () => clearInterval(interval)
   }, [token])
 
   const loadStats = async () => {
@@ -88,7 +95,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
       {/* 用户信息栏 */}
       {user && (
         <div className="user-info-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span className="user-name">
               {user.name || user.email}
             </span>
@@ -102,35 +109,43 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
           {/* Token显示和充值按钮 */}
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '8px 12px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '8px',
-            color: 'white',
-            fontSize: '13px',
-            marginTop: '8px'
+            flexDirection: 'column',
+            gap: '8px'
           }}>
-            <span style={{ fontWeight: '500' }}>
+            <div style={{
+              padding: '10px 12px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '8px',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
               🪙 Token: {loading ? '-' : userTokens.toLocaleString()}
-            </span>
+            </div>
             <button
               onClick={() => setShowRechargeModal(true)}
               style={{
-                padding: '4px 12px',
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '4px',
-                color: 'white',
+                padding: '8px 12px',
+                background: 'rgba(102, 126, 234, 0.1)',
+                border: '1px solid rgba(102, 126, 234, 0.3)',
+                borderRadius: '6px',
+                color: 'var(--primary-color)',
                 cursor: 'pointer',
-                fontSize: '12px',
+                fontSize: '13px',
                 fontWeight: '500',
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(102, 126, 234, 0.2)'
+                e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.5)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)'
+                e.currentTarget.style.borderColor = 'rgba(102, 126, 234, 0.3)'
+              }}
             >
-              充值
+              💳 充值
             </button>
           </div>
         </div>

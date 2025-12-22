@@ -77,11 +77,11 @@ export default function GuestChatPage() {
     }
     setMessages(prev => [...prev, userMsg])
 
-    // 创建一个临时的 AI 消息用于流式更新
+    // 创建一个临时的 AI 消息，初始内容为"思考中..."
     const aiMsg: Message = {
       id: 'ai-' + Date.now(),
       role: 'assistant',
-      content: '',
+      content: '💭 思考中...',
       createdAt: new Date().toISOString()
     }
     setMessages(prev => [...prev, aiMsg])
@@ -120,6 +120,7 @@ export default function GuestChatPage() {
 
       let buffer = ''
       let messageCompleted = false
+      let firstContent = true
 
       while (true) {
         const { done, value } = await reader.read()
@@ -148,12 +149,16 @@ export default function GuestChatPage() {
                         ...prev.slice(0, lastIndex),
                         {
                           ...prev[lastIndex],
-                          content: prev[lastIndex].content + parsed.content
+                          // 第一次收到内容时，替换"思考中..."；之后追加内容
+                          content: firstContent
+                            ? parsed.content
+                            : prev[lastIndex].content + parsed.content
                         }
                       ]
                     }
                     return prev
                   })
+                  if (firstContent) firstContent = false
                 }
               } catch (e) {
                 console.error('解析数据失败:', e)

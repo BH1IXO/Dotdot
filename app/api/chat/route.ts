@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getMemMachineClient } from '@/lib/memmachine-client'
 import { optionalAuthenticate } from '@/lib/auth-middleware'
 import { extractMemories } from '@/lib/memory-extractor'
+import { estimateTokens } from '@/lib/token-counter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -493,6 +494,45 @@ ${webSearchEnabled ? '- 如果网络搜索提供了相关信息，请引用这�
           extractAndSaveMemories(message, fullResponse, userName, userId).catch(err => {
             console.error('❌ [MemoryExtractor] Background extraction failed:', err.message)
           })
+
+          // 计算并扣减Token（只对非default用户）
+          let remainingTokens = 0
+          if (userId !== 'default') {
+            try {
+              const inputTokens = estimateTokens(systemPrompt + message)
+              const outputTokens = estimateTokens(fullResponse)
+              const totalTokens = inputTokens + outputTokens
+
+              console.log(`📊 Token使用: 输入=${inputTokens}, 输出=${outputTokens}, 总计=${totalTokens}`)
+
+              const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { tokens: true }
+              })
+
+              if (user && user.tokens >= totalTokens) {
+                const updatedUser = await prisma.user.update({
+                  where: { id: userId },
+                  data: { tokens: { decrement: totalTokens } },
+                  select: { tokens: true }
+                })
+                remainingTokens = updatedUser.tokens
+                console.log(`✅ Token已扣减: ${totalTokens}, 剩余: ${remainingTokens}`)
+              } else {
+                console.log(`⚠️ Token不足，但继续处理请求`)
+                remainingTokens = user?.tokens || 0
+              }
+            } catch (error) {
+              console.error('❌ Token扣减失败:', error)
+            }
+          }
+
+          // 发送Token使用信息
+          if (userId !== 'default') {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              tokens: { remaining: remainingTokens }
+            })}\n\n`))
+          }
 
           // 发送结束信号
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
