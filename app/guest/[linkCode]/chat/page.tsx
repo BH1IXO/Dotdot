@@ -120,7 +120,7 @@ export default function GuestChatPage() {
 
       let buffer = ''
       let messageCompleted = false
-      let firstContent = true
+      let hasReceivedContent = false  // 标记是否已接收到内容
 
       while (true) {
         const { done, value } = await reader.read()
@@ -145,20 +145,24 @@ export default function GuestChatPage() {
                   setMessages(prev => {
                     const lastIndex = prev.length - 1
                     if (lastIndex >= 0 && prev[lastIndex].role === 'assistant') {
+                      const currentContent = prev[lastIndex].content
+                      // 第一次收到内容时，如果当前显示"思考中..."，则完全替换；否则追加
+                      const isThinking = currentContent.includes('思考中')
+                      const newContent = isThinking && !hasReceivedContent
+                        ? parsed.content  // 完全替换"思考中..."
+                        : currentContent + parsed.content  // 追加新内容
+
                       return [
                         ...prev.slice(0, lastIndex),
                         {
                           ...prev[lastIndex],
-                          // 第一次收到内容时，替换"思考中..."；之后追加内容
-                          content: firstContent
-                            ? parsed.content
-                            : prev[lastIndex].content + parsed.content
+                          content: newContent
                         }
                       ]
                     }
                     return prev
                   })
-                  if (firstContent) firstContent = false
+                  hasReceivedContent = true  // 标记已接收到内容
                 }
               } catch (e) {
                 console.error('解析数据失败:', e)
