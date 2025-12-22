@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         id: true,
         email: true,
         name: true,
+        tokens: true,
         createdAt: true,
       }
     })

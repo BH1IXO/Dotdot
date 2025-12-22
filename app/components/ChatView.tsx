@@ -31,6 +31,8 @@ interface Message {
 export default function ChatView() {
   const { token, user } = useAuth()
   const userName = user?.name || user?.email?.split('@')[0] || '用户'
+  const userTokens = user?.tokens ? Number(user.tokens) : 0
+  const hasTokens = userTokens > 0
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -629,19 +631,24 @@ export default function ChatView() {
             </button>
             <textarea
               id="message-input"
-              placeholder={webSearchEnabled ? '试试问：今天的日期？最新的新闻？' : '试试问：你好，介绍一下你自己...'}
+              placeholder={!hasTokens ? 'Token已用完，请充值...' : webSearchEnabled ? '试试问：今天的日期？最新的新闻？' : '试试问：你好，介绍一下你自己...'}
               rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isLoading}
+              disabled={isLoading || !hasTokens}
             />
             <button
               className="btn-send"
               onClick={handleSend}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !hasTokens}
+              style={{
+                background: !hasTokens ? '#9ca3af' : undefined,
+                cursor: !hasTokens ? 'not-allowed' : 'pointer'
+              }}
+              title={!hasTokens ? 'Token已用完，请充值' : undefined}
             >
-              {isLoading ? '发送中...' : '发送'}
+              {!hasTokens ? '请充值' : isLoading ? '发送中...' : '发送'}
             </button>
           </div>
           <div className="input-suggestions">

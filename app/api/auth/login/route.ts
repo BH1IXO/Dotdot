@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
         email: true,
         name: true,
         passwordHash: true,
+        tokens: true,
         createdAt: true,
       }
     })
