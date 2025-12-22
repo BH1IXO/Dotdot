@@ -49,8 +49,7 @@ body {
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 10px;
 }
 

@@ -106,27 +106,31 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
               退出
             </button>
           </div>
-          {/* Token显示和充值按钮 */}
+          {/* Token显示和充值按钮 - 横向布局 */}
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
+            gap: '8px',
+            alignItems: 'stretch'
           }}>
             <div style={{
+              flex: 1,
               padding: '10px 12px',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               borderRadius: '8px',
               color: 'white',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '500',
-              textAlign: 'center'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap'
             }}>
-              🪙 Token: {loading ? '-' : userTokens.toLocaleString()}
+              🪙 {loading ? '-' : userTokens.toLocaleString()}
             </div>
             <button
               onClick={() => setShowRechargeModal(true)}
               style={{
-                padding: '8px 12px',
+                padding: '8px 16px',
                 background: 'rgba(102, 126, 234, 0.1)',
                 border: '1px solid rgba(102, 126, 234, 0.3)',
                 borderRadius: '6px',
@@ -134,7 +138,8 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: '500',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(102, 126, 234, 0.2)'
@@ -243,7 +248,7 @@ export default function Sidebar({ activeView, onViewChange, user, onLogout }: Si
                 color: '#166534'
               }}>
                 <div style={{ fontWeight: '600', marginBottom: '4px' }}>充值说明</div>
-                <div>10元 = 10000 Token</div>
+                <div>10元 = 100000 Token</div>
                 <div style={{ fontSize: '12px', marginTop: '4px', color: '#15803d' }}>
                   付款后请联系管理员确认到账
                 </div>
