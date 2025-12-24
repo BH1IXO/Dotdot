@@ -168,7 +168,12 @@ export default function GuestLinksView() {
         </button>
       </div>
 
-      <div className="view-content">
+      <div className="view-content" style={{
+        flex: 1,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         {showCreateForm && (
           <form onSubmit={createLink} className="create-form">
             <div className="form-group">
