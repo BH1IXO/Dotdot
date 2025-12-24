@@ -148,6 +148,8 @@ export async function POST(req: NextRequest) {
     let memoryContext = ''
 
     try {
+      console.log(`🔍 [Memory Search] 查询: "${message}"`)
+
       const searchResult = await userMemClient.searchMemories(message, {
         topK: 20,  // 增加到20，确保访客能检索到足够的相关记忆
         types: [], // Search both episodic and semantic
@@ -158,13 +160,24 @@ export async function POST(req: NextRequest) {
       const longTermEpisodes = episodicMemory?.long_term_memory?.episodes || []
       const allEpisodes = [...shortTermEpisodes, ...longTermEpisodes]
 
+      console.log(`📊 [Memory Search] 找到 ${allEpisodes.length} 条记忆 (短期: ${shortTermEpisodes.length}, 长期: ${longTermEpisodes.length})`)
+
       if (allEpisodes.length > 0) {
+        console.log(`📝 [Memory Search] 记忆内容:`)
+        allEpisodes.forEach((ep, idx) => {
+          console.log(`  ${idx + 1}. ${ep.content}`)
+        })
+
         memoryContext = '\n\n相关记忆:\n' + allEpisodes
           .map(ep => `- ${ep.content}`)
           .join('\n')
+
+        console.log(`✅ [Memory Search] 记忆上下文已构建 (${memoryContext.length} 字符)`)
+      } else {
+        console.log(`⚠️ [Memory Search] 未找到相关记忆`)
       }
     } catch (error) {
-      console.error('搜索记忆失败:', error)
+      console.error('❌ [Memory Search] 搜索记忆失败:', error)
     }
 
     // 构建对话上下文 - 数字分身以用户本人的口吻对话
