@@ -250,25 +250,20 @@ export default function GuestChatPage() {
             访客对话 - {guestName}
           </h1>
         </div>
-        {/* 问答次数和充值按钮 */}
+        {/* 对话次数和充值按钮 */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '8px 12px',
-          background: remainingQuota > 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          background: (maxConversations === null || conversationCount < maxConversations) ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
           borderRadius: '6px',
           color: 'white',
           fontSize: '13px'
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{ fontWeight: '500' }}>
-              今日剩余: {remainingQuota} / {dailyLimit} 次
-            </span>
-            <span style={{ fontSize: '12px', opacity: '0.9' }}>
-              总对话次数: {conversationCount} / {maxConversations === null ? '无限' : maxConversations} 次
-            </span>
-          </div>
+          <span style={{ fontWeight: '500' }}>
+            总对话次数: {conversationCount} / {maxConversations === null ? '无限' : maxConversations} 次
+          </span>
           <button
             onClick={() => setShowRechargeModal(true)}
             style={{
