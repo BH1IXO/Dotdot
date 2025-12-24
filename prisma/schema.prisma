@@ -130,7 +130,7 @@ model User {
   name          String?
 
   // Token系统
-  tokens        BigInt   @default(100000)  // Token余额，注册时赠送100000
+  tokens        BigInt   @default(1000000)  // Token余额，注册时赠送1000000
 
   // 关联
   messages      Message[]
@@ -178,6 +178,10 @@ model GuestLink {
   dailyLimit      Int      @default(10)     // 每天可以问的次数
   remainingQuota  Int      @default(10)     // 剩余可问次数
   lastResetDate   DateTime @default(now())  // 上次重置日期
+
+  // 总对话次数限制
+  maxConversations Int?                     // 最大对话次数限制 (null表示无限)
+  conversationCount Int     @default(0)     // 已使用的对话次数
 
   sessions        GuestSession[]
   recharges       GuestRecharge[]  @relation("GuestLinkRecharges")

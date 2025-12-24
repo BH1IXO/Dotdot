@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getMemMachineClient } from '@/lib/memmachine-client'
 import { streamChat, ChatMessage } from '@/lib/deepseek'
+import { estimateTokens } from '@/lib/token-counter'
 
 export const runtime = 'nodejs'
 
@@ -36,10 +37,13 @@ export async function POST(req: NextRequest) {
             dailyLimit: true,
             remainingQuota: true,
             lastResetDate: true,
+            maxConversations: true,
+            conversationCount: true,
             user: {
               select: {
                 id: true,
                 name: true,
+                tokens: true,
               }
             }
           }
@@ -89,11 +93,27 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 减少配额
+    // 检查总对话次数限制（如果设置了限制）
+    if (session.link.maxConversations !== null && session.link.conversationCount >= session.link.maxConversations) {
+      return new Response(
+        JSON.stringify({
+          error: '总对话次数已用尽',
+          maxConversations: session.link.maxConversations,
+          conversationCount: session.link.conversationCount
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // 减少每日配额并增加总对话计数
     await prisma.guestLink.update({
       where: { id: session.link.id },
       data: {
-        remainingQuota: { decrement: 1 }
+        remainingQuota: { decrement: 1 },
+        conversationCount: { increment: 1 }
       }
     })
 
@@ -260,6 +280,34 @@ export async function POST(req: NextRequest) {
           }
 
           console.log(`✅ 访客消息已处理: 会话=${sessionId}, 访客=${session.guestName}`)
+
+          // 计算并扣除用户token
+          try {
+            const inputTokens = estimateTokens(systemPrompt + message)
+            const outputTokens = estimateTokens(fullResponse)
+            const totalTokens = inputTokens + outputTokens
+
+            console.log(`📊 访客对话Token使用: 输入=${inputTokens}, 输出=${outputTokens}, 总计=${totalTokens}`)
+
+            // 从链接所属用户的token余额中扣除
+            const currentUser = await prisma.user.findUnique({
+              where: { id: session.link.userId },
+              select: { tokens: true }
+            })
+
+            if (currentUser && Number(currentUser.tokens) >= totalTokens) {
+              await prisma.user.update({
+                where: { id: session.link.userId },
+                data: { tokens: { decrement: totalTokens } }
+              })
+              console.log(`✅ 从用户 ${session.link.userId} 扣除 ${totalTokens} tokens`)
+            } else {
+              console.log(`⚠️ 用户 ${session.link.userId} token不足，但继续处理请求`)
+            }
+          } catch (tokenError) {
+            console.error('❌ Token扣除失败:', tokenError)
+            // 不中断流程，继续返回响应
+          }
 
           // 发送包含消息ID的元数据
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({

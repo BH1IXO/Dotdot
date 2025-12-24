@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { password, label, expiresAt } = await req.json()
+    const { password, label, expiresAt, maxConversations } = await req.json()
 
     // 验证输入
     if (!password || password.length < 4) {
@@ -42,6 +42,26 @@ export async function POST(req: NextRequest) {
         { error: '密码长度至少4位' },
         { status: 400 }
       )
+    }
+
+    // 处理对话次数限制：undefined或null表示无限，否则使用用户输入或默认值10
+    let conversationLimit: number | null = null
+    if (maxConversations !== undefined && maxConversations !== null) {
+      if (maxConversations === 'unlimited' || maxConversations === -1) {
+        conversationLimit = null  // 无限
+      } else {
+        const limit = parseInt(maxConversations)
+        if (isNaN(limit) || limit < 1) {
+          return NextResponse.json(
+            { error: '对话次数必须是大于0的数字或"无限"' },
+            { status: 400 }
+          )
+        }
+        conversationLimit = limit
+      }
+    } else {
+      // 如果用户没有指定，默认为10
+      conversationLimit = 10
     }
 
     // 生成唯一的链接代码
@@ -79,6 +99,7 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         label: label || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
+        maxConversations: conversationLimit,
       },
       select: {
         id: true,
@@ -86,6 +107,8 @@ export async function POST(req: NextRequest) {
         label: true,
         isActive: true,
         expiresAt: true,
+        maxConversations: true,
+        conversationCount: true,
         createdAt: true,
         updatedAt: true,
       }
