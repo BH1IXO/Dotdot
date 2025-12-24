@@ -146,11 +146,17 @@ export default function GuestChatPage() {
                     const lastIndex = prev.length - 1
                     if (lastIndex >= 0 && prev[lastIndex].role === 'assistant') {
                       const currentContent = prev[lastIndex].content
-                      // 第一次收到内容时，如果当前显示"思考中..."，则完全替换；否则追加
+                      // 如果当前显示"思考中..."且这是第一次收到内容，则完全替换
                       const isThinking = currentContent.includes('思考中')
-                      const newContent = isThinking && !hasReceivedContent
-                        ? parsed.content  // 完全替换"思考中..."
-                        : currentContent + parsed.content  // 追加新内容
+                      let newContent: string
+
+                      if (isThinking && !hasReceivedContent) {
+                        // 第一次收到内容，完全替换"思考中..."
+                        newContent = parsed.content
+                      } else {
+                        // 后续内容追加
+                        newContent = currentContent + parsed.content
+                      }
 
                       return [
                         ...prev.slice(0, lastIndex),
@@ -162,7 +168,8 @@ export default function GuestChatPage() {
                     }
                     return prev
                   })
-                  hasReceivedContent = true  // 标记已接收到内容
+                  // 标记已接收到内容（在setMessages之后，确保下次循环时hasReceivedContent已经是true）
+                  hasReceivedContent = true
                 }
               } catch (e) {
                 console.error('解析数据失败:', e)

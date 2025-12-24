@@ -22,7 +22,9 @@ export default function GuestLinksPage() {
   const [formData, setFormData] = useState({
     password: '',
     label: '',
-    expiresAt: ''
+    expiresAt: '',
+    maxConversations: '10',
+    unlimitedConversations: false
   })
 
   useEffect(() => {
@@ -51,19 +53,30 @@ export default function GuestLinksPage() {
     setCreating(true)
     try {
       const token = localStorage.getItem('auth_token')
+
+      // 处理对话次数限制
+      const requestData = {
+        password: formData.password,
+        label: formData.label,
+        expiresAt: formData.expiresAt,
+        maxConversations: formData.unlimitedConversations
+          ? 'unlimited'
+          : parseInt(formData.maxConversations) || 10
+      }
+
       const res = await fetch('/api/guest-links/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestData)
       })
       const data = await res.json()
       if (data.success) {
         setLinks([data.guestLink, ...links])
         setShowCreateForm(false)
-        setFormData({ password: '', label: '', expiresAt: '' })
+        setFormData({ password: '', label: '', expiresAt: '', maxConversations: '10', unlimitedConversations: false })
         alert('链接创建成功!')
       } else {
         alert(data.error || '创建失败')
@@ -188,6 +201,35 @@ export default function GuestLinksPage() {
               onChange={e => setFormData({ ...formData, expiresAt: e.target.value })}
               className="w-full px-3 py-2 border rounded"
             />
+          </div>
+          <div className="mb-4">
+            <label className="block mb-2">总对话次数限制</label>
+            <div className="flex items-center gap-4 mb-2">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.unlimitedConversations}
+                  onChange={e => setFormData({ ...formData, unlimitedConversations: e.target.checked })}
+                  className="mr-2"
+                />
+                <span>无限制</span>
+              </label>
+            </div>
+            {!formData.unlimitedConversations && (
+              <input
+                type="number"
+                value={formData.maxConversations}
+                onChange={e => setFormData({ ...formData, maxConversations: e.target.value })}
+                className="w-full px-3 py-2 border rounded"
+                placeholder="默认为10次"
+                min="1"
+              />
+            )}
+            <p className="text-sm text-gray-500 mt-1">
+              {formData.unlimitedConversations
+                ? '访客可以无限次对话（每次对话仍会消耗您的token）'
+                : `访客最多可以进行 ${formData.maxConversations || 10} 次对话`}
+            </p>
           </div>
           <button
             type="submit"
