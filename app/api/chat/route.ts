@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     console.log('🔍 Starting MemMachine search for:', message.slice(0, 50))
     try {
       const searchResult = await userMemClient.searchMemories(message, {
-        topK: 50, // 增加到 50，因为 MemMachine 不返回相似度分数，需要更多结果来覆盖相关记忆
+        topK: 100, // 增加到 100，确保能检索到上传的PDF/Word等文档内容
         types: [], // Search BOTH episodic and semantic memories
       })
       console.log('🔍 MemMachine searchResult:', JSON.stringify(searchResult).slice(0, 300))

@@ -222,6 +222,11 @@ export default function GuestChatPage() {
     )
   }
 
+  // 判断是否已用尽配额：如果设置了总对话次数限制，检查conversationCount；否则检查每日配额
+  const isQuotaExhausted = maxConversations !== null
+    ? conversationCount >= maxConversations
+    : remainingQuota <= 0
+
   return (
     <div style={{
       display: 'flex',
@@ -410,10 +415,10 @@ export default function GuestChatPage() {
           />
           <button
             type="submit"
-            disabled={loading || !input.trim() || remainingQuota <= 0}
+            disabled={loading || !input.trim() || isQuotaExhausted}
             style={{
               padding: '12px 24px',
-              background: loading || !input.trim() || remainingQuota <= 0
+              background: loading || !input.trim() || isQuotaExhausted
                 ? 'var(--text-secondary)'
                 : 'var(--success-color)',
               color: 'white',
@@ -421,13 +426,13 @@ export default function GuestChatPage() {
               borderRadius: '8px',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: loading || !input.trim() || remainingQuota <= 0 ? 'not-allowed' : 'pointer',
+              cursor: loading || !input.trim() || isQuotaExhausted ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s',
-              opacity: loading || !input.trim() || remainingQuota <= 0 ? '0.6' : '1',
+              opacity: loading || !input.trim() || isQuotaExhausted ? '0.6' : '1',
               minWidth: '100px'
             }}
             onMouseEnter={(e) => {
-              if (!loading && input.trim() && remainingQuota > 0) {
+              if (!loading && input.trim() && !isQuotaExhausted) {
                 e.currentTarget.style.opacity = '0.9'
               }
             }}
