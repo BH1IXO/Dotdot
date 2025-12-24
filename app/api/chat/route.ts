@@ -530,7 +530,7 @@ ${webSearchEnabled ? '- 如果网络搜索提供了相关信息，请引用这�
           // 发送Token使用信息
           if (userId !== 'default') {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-              tokens: { remaining: remainingTokens }
+              tokens: { remaining: Number(remainingTokens) }  // 将 BigInt 转换为 Number
             })}\n\n`))
           }
 
