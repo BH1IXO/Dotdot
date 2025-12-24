@@ -23,6 +23,8 @@ export default function GuestChatPage() {
   const [guestName, setGuestName] = useState('')
   const [dailyLimit, setDailyLimit] = useState(10)
   const [remainingQuota, setRemainingQuota] = useState(10)
+  const [maxConversations, setMaxConversations] = useState<number | null>(null)
+  const [conversationCount, setConversationCount] = useState(0)
   const [showRechargeModal, setShowRechargeModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -53,6 +55,8 @@ export default function GuestChatPage() {
         if (data.session.link) {
           setDailyLimit(data.session.link.dailyLimit || 10)
           setRemainingQuota(data.session.link.remainingQuota || 10)
+          setMaxConversations(data.session.link.maxConversations)
+          setConversationCount(data.session.link.conversationCount || 0)
         }
       }
     } catch (error) {
@@ -99,9 +103,17 @@ export default function GuestChatPage() {
       if (!res.ok) {
         if (res.status === 429) {
           const errorData = await res.json()
-          setDailyLimit(errorData.dailyLimit || 10)
-          setRemainingQuota(errorData.remainingQuota || 0)
-          alert('今日问答次数已用尽，请充值后继续')
+          // 更新配额信息
+          if (errorData.dailyLimit !== undefined) {
+            setDailyLimit(errorData.dailyLimit)
+            setRemainingQuota(errorData.remainingQuota || 0)
+          }
+          if (errorData.maxConversations !== undefined) {
+            setMaxConversations(errorData.maxConversations)
+            setConversationCount(errorData.conversationCount || 0)
+          }
+          // 显示具体的错误信息
+          alert(errorData.error || '问答次数已用尽，请充值后继续')
           // 移除临时AI消息
           setMessages(prev => prev.filter(m => m.id !== aiMsg.id))
           setLoading(false)
@@ -179,9 +191,10 @@ export default function GuestChatPage() {
         }
       }
 
-      // 消息发送成功后，减少剩余配额
+      // 消息发送成功后，减少剩余配额并增加总对话计数
       if (messageCompleted) {
         setRemainingQuota(prev => Math.max(0, prev - 1))
+        setConversationCount(prev => prev + 1)
       }
     } catch (error) {
       console.error('发送失败:', error)
@@ -248,9 +261,14 @@ export default function GuestChatPage() {
           color: 'white',
           fontSize: '13px'
         }}>
-          <span style={{ fontWeight: '500' }}>
-            今日剩余: {remainingQuota} / {dailyLimit} 次
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontWeight: '500' }}>
+              今日剩余: {remainingQuota} / {dailyLimit} 次
+            </span>
+            <span style={{ fontSize: '12px', opacity: '0.9' }}>
+              总对话次数: {conversationCount} / {maxConversations === null ? '无限' : maxConversations} 次
+            </span>
+          </div>
           <button
             onClick={() => setShowRechargeModal(true)}
             style={{

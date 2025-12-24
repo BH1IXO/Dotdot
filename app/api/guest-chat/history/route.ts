@@ -29,6 +29,8 @@ export async function GET(req: NextRequest) {
             dailyLimit: true,
             remainingQuota: true,
             lastResetDate: true,
+            maxConversations: true,
+            conversationCount: true,
           }
         }
       }
@@ -74,6 +76,8 @@ export async function GET(req: NextRequest) {
         link: {
           dailyLimit: session.link.dailyLimit,
           remainingQuota: currentQuota,
+          maxConversations: session.link.maxConversations,
+          conversationCount: session.link.conversationCount,
         }
       }
     })
