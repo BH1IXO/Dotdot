@@ -78,22 +78,7 @@ export async function POST(req: NextRequest) {
       session.link.remainingQuota = session.link.dailyLimit
     }
 
-    // 检查剩余配额
-    if (session.link.remainingQuota <= 0) {
-      return new Response(
-        JSON.stringify({
-          error: '今日问答次数已用尽',
-          dailyLimit: session.link.dailyLimit,
-          remainingQuota: 0
-        }),
-        {
-          status: 429,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // 检查总对话次数限制（如果设置了限制）
+    // 检查总对话次数限制（优先检查）
     if (session.link.maxConversations !== null && session.link.conversationCount >= session.link.maxConversations) {
       return new Response(
         JSON.stringify({
@@ -108,14 +93,39 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 减少每日配额并增加总对话计数
-    await prisma.guestLink.update({
-      where: { id: session.link.id },
-      data: {
-        remainingQuota: { decrement: 1 },
-        conversationCount: { increment: 1 }
-      }
-    })
+    // 检查每日配额（仅在未设置总对话次数限制时检查）
+    if (session.link.maxConversations === null && session.link.remainingQuota <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: '今日问答次数已用尽',
+          dailyLimit: session.link.dailyLimit,
+          remainingQuota: 0
+        }),
+        {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // 更新配额：如果设置了总对话次数限制，只增加计数；否则减少每日配额
+    if (session.link.maxConversations !== null) {
+      // 有总对话次数限制，只增加计数
+      await prisma.guestLink.update({
+        where: { id: session.link.id },
+        data: {
+          conversationCount: { increment: 1 }
+        }
+      })
+    } else {
+      // 没有总对话次数限制，使用每日配额
+      await prisma.guestLink.update({
+        where: { id: session.link.id },
+        data: {
+          remainingQuota: { decrement: 1 }
+        }
+      })
+    }
 
     // 保存用户消息
     const userMessage = await prisma.guestMessage.create({
@@ -174,14 +184,21 @@ export async function POST(req: NextRequest) {
    - "我是${userName}的数字分身"
    - 或从记忆中找到的昵称/外号（如"我是大桃子"、"我是Todd"）
    - 根据语境自然选择合适的称呼
-2. 回答要简短、直接、有重点，避免长篇大论
-3. 涉及隐私问题（如具体地址、身份证号、银行卡号等）要巧妙回避，可以说"这个不太方便透露"或转移话题
-4. 绝对不要透露其他访客的信息（谁来聊过天、聊了什么），保护所有访客隐私
-5. 使用第一人称"我"，以 ${userName} 的口吻、性格和语气回答
-6. 可以适当使用emoji让对话更生动自然 😊
+2. 当访客问关于"我"的个人问题时（如"你爱吃什么"、"你有什么故事"、"你的爱好"等）：
+   - **必须基于下面提供的"相关记忆"来回答**
+   - 以第一人称"我"的口吻，就像 ${userName} 本人在回答一样
+   - 如果记忆中有相关信息，详细、具体地分享
+   - 如果记忆中没有相关信息，可以诚实地说"这个我还没有记录在记忆里"或"让我想想..."
+3. 回答要简短、直接、有重点，避免长篇大论
+4. 涉及隐私问题（如具体地址、身份证号、银行卡号等）要巧妙回避，可以说"这个不太方便透露"或转移话题
+5. 绝对不要透露其他访客的信息（谁来聊过天、聊了什么），保护所有访客隐私
+6. 使用第一人称"我"，以 ${userName} 的口吻、性格和语气回答
+7. 可以适当使用emoji让对话更生动自然 😊
 
-**记忆访问:**
-你可以访问 ${userName} 的所有记忆和知识来回答问题。保持友好、自然、真实。${memoryContext}`
+**重要提醒:**
+- 你拥有完整的记忆系统，可以回忆起 ${userName} 的各种经历、喜好、故事
+- 当访客询问关于 ${userName} 的事情时，要像 ${userName} 本人一样自然地分享
+- 记忆中的信息都是真实可信的，请充分利用这些记忆来回答${memoryContext}`
 
     const messages: ChatMessage[] = [
       {
